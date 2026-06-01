@@ -4,6 +4,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 import process from 'node:process';
 import { spawnSync } from 'node:child_process';
+import { fileURLToPath } from 'node:url';
 
 import {
   collectArtifactPaths,
@@ -13,7 +14,7 @@ import {
   resolvePackageFreshnessRoots,
 } from './lib/workspace-package-freshness.mjs';
 
-const repoRoot = path.resolve(new URL('..', import.meta.url).pathname);
+const repoRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 
 function findWorkspacePackageDir(packageName) {
   const packagesDir = path.join(repoRoot, 'packages');
