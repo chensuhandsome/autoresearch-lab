@@ -92,8 +92,8 @@ is a signal worth flagging in the response.
   is the recent deletion.
 - A fresh subagent or peer model running an adversarial review of the
   diff in isolation.
-- `gitnexus_impact` and `gitnexus_context` to surface call sites and
-  invariants you may have forgotten existed.
+- Call-graph tracing — grep for call sites, or a code-intelligence tool
+  if one is available — to surface invariants you may have forgotten existed.
 - `pnpm -r build` and the targeted package's `vitest` / `pytest` —
   type-checking and tests catch a subset of M1, but they do not
   substitute for the disconfirming check.
@@ -452,6 +452,15 @@ file.
   findings are not symptoms the author could have caught.
 - `paper-reviser` is the right surface for acting on M2/M3/M4/M7
   findings that surface during late-stage drafting.
+- `claim-grounding` is the active execution of the M2/M3 obligations.
+  Where this skill mandates *that* citations and cited numbers be checked
+  against their sources, `claim-grounding` is the generic, domain-routed
+  way to *do* it: for each cited claim it fetches the source and records a
+  span-backed verdict in a `claim_grounding_report_v1` artifact, and a
+  `substantiated` verdict that carries no verbatim source quote is
+  mechanically downgraded. It stays a generic skill plus a
+  `@autoresearch/shared` contract — not a `hep-mcp` tool — consistent with
+  the criterion below.
 
 ## HEP-specific augmentation (future, out of scope here)
 

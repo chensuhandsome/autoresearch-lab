@@ -63,7 +63,7 @@ The tool auto-detects whether the input is a full LaTeX document:
 Set paths once:
 
 ```bash
-SKILLS_DIR="${CODEX_HOME:-$HOME/.codex}/skills"
+SKILLS_DIR="${SKILLS_DIR:-$(for r in "${CLAUDE_CONFIG_DIR:-$HOME/.claude}" "${CODEX_HOME:-$HOME/.codex}" "$HOME/.config/opencode"; do [ -d "$r/skills" ] && echo "$r/skills" && break; done || true)}"
 PAPER_REVISER="$SKILLS_DIR/paper-reviser"
 RESEARCH_TEAM="$SKILLS_DIR/research-team"
 ```
@@ -77,7 +77,7 @@ python3 "$PAPER_REVISER/scripts/bin/paper_reviser_edit.py" \
   --stub-models
 ```
 
-### 2) Real run (opus writer + gemini-3-pro-preview auditor)
+### 2) Real run (opus writer + gemini-3.1-pro-preview auditor)
 
 ```bash
 python3 "$PAPER_REVISER/scripts/bin/paper_reviser_edit.py" \
@@ -85,7 +85,7 @@ python3 "$PAPER_REVISER/scripts/bin/paper_reviser_edit.py" \
   --out-dir /tmp/paper_reviser_out \
   --run-models \
   --writer-backend claude --writer-model opus \
-  --auditor-backend gemini --auditor-model gemini-3-pro-preview
+  --auditor-backend gemini --auditor-model gemini-3.1-pro-preview
 ```
 
 Common optional flags:
@@ -127,7 +127,7 @@ python3 "$PAPER_REVISER/scripts/bin/paper_reviser_edit.py" \
   --out-dir /tmp/paper_reviser_out_r2 \
   --run-models \
   --writer-backend claude --writer-model opus \
-  --auditor-backend gemini --auditor-model gemini-3-pro-preview \
+  --auditor-backend gemini --auditor-model gemini-3.1-pro-preview \
   --context-file /path/to/evidence.md \
   --max-rounds 1
 ```

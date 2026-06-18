@@ -7,6 +7,12 @@ description: Run the local `gemini` CLI in one-shot mode for arbitrary prompts; 
 
 Use this skill when you need to call Gemini from the command line (any task), independent of the downstream workflow (review, drafting, etc.).
 
+> **If you are already running as Gemini, don't use this runner to re-invoke yourself.** Run the call
+> in-host — inline in your own loop (the Gemini CLI may expose no native sub-agent primitive). The
+> `gemini` CLI hop adds latency, a separate session, and context loss for zero gain. This runner is for
+> reaching Gemini from a DIFFERENT host (Claude / Codex / OpenCode / …) for cross-model work. Pick the
+> model / reasoning depth by task difficulty (quality first, not token thrift).
+
 ## Preconditions
 
 - `gemini` is installed: `command -v gemini`
@@ -15,7 +21,8 @@ Use this skill when you need to call Gemini from the command line (any task), in
 ## Recommended: runner script (file input + model fallback)
 
 ```bash
-bash "$CODEX_HOME/skills/gemini-cli-runner/scripts/run_gemini.sh" \
+SKILL_DIR="${SKILL_DIR:-$(for r in "${CLAUDE_CONFIG_DIR:-$HOME/.claude}" "${CODEX_HOME:-$HOME/.codex}" "$HOME/.config/opencode"; do [ -d "$r/skills/gemini-cli-runner" ] && echo "$r/skills/gemini-cli-runner" && break; done || true)}"
+bash "${SKILL_DIR}/scripts/run_gemini.sh" \
   --model gemini-3.1-pro-preview \
   --system-prompt-file /path/to/system.txt \
   --prompt-file /path/to/prompt.txt \
@@ -25,7 +32,8 @@ bash "$CODEX_HOME/skills/gemini-cli-runner/scripts/run_gemini.sh" \
 Dry-run (no `gemini` call):
 
 ```bash
-bash "$CODEX_HOME/skills/gemini-cli-runner/scripts/run_gemini.sh" \
+SKILL_DIR="${SKILL_DIR:-$(for r in "${CLAUDE_CONFIG_DIR:-$HOME/.claude}" "${CODEX_HOME:-$HOME/.codex}" "$HOME/.config/opencode"; do [ -d "$r/skills/gemini-cli-runner" ] && echo "$r/skills/gemini-cli-runner" && break; done || true)}"
+bash "${SKILL_DIR}/scripts/run_gemini.sh" \
   --model gemini-3.1-pro-preview \
   --system-prompt-file /path/to/system.txt \
   --prompt-file /path/to/prompt.txt \

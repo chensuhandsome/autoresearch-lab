@@ -1,6 +1,6 @@
 ---
 name: research-harness
-description: Use when working inside an external research project that has or may need autoresearch state, research_plan.md, research_contract.md, artifacts/runs, team/runs, Codex/Claude Code continuation, recovery, verification, approval, export, or handoff.
+description: Use when working inside an external research project that has or may need autoresearch state, research_plan.md, research_contract.md, artifacts/runs, team/runs, Codex/Claude Code continuation, recovery, verification, approval, export, handoff, or surviving long-running / kill-prone compute jobs (checkpoint + heartbeat + resume).
 ---
 
 # Research Harness
@@ -54,11 +54,14 @@ The check is also skipped for:
   directory (no lifecycle context to drift from);
 - `AUTORESEARCH_HARNESS_VERIFY=skip` env override (escape hatch) and
   `NODE_ENV=test` default.
-4. If `.autoresearch/` exists but `.autoresearch/HARNESS` is missing, or if both entrypoints are unavailable, repair only the runtime handshake and launcher from the
-   known development checkout, then retry the project-local CLI:
+4. If `.autoresearch/` exists but `.autoresearch/HARNESS` is missing, or if both entrypoints are unavailable, repair only the runtime handshake and launcher, then retry the project-local CLI:
    ```bash
-   node /Users/fkg/Coding/Agents/autoresearch-lab/packages/orchestrator/dist/cli.js init --runtime-only
+   autoresearch init --runtime-only
    ./.autoresearch/bin/autoresearch status --json
+   ```
+   If `autoresearch` is not on `PATH`, run the same one-time repair through your autoresearch checkout (substitute its absolute path):
+   ```bash
+   node /absolute/path/to/autoresearch-lab/packages/orchestrator/dist/cli.js init --runtime-only
    ```
 5. Read and align the durable project surfaces:
    - `research_plan.md`, especially `# Current Status`
@@ -66,7 +69,9 @@ The check is also skipped for:
    - `research_notebook.md` when it contains substantive project notes
    - the relevant `artifacts/runs/<run_id>/` and `team/runs/` directories
 
-To pull newer managed scaffold docs (`AGENTS.md` and the `docs/` contracts) into an existing project without disturbing user notes, run `autoresearch init --refresh` (preview with `autoresearch init --refresh --dry-run`). It backs up any changed managed file under `.autoresearch/backups/` and never rewrites `research_plan.md`, `research_notebook.md`, `research_contract.md`, `project_charter.md`, or `project_index.md`.
+**Anchor on the final adopted version — never build on a superseded one.** A long project accumulates earlier fits, methods, grids, and exploratory scripts; a *newer* adopted result (a better minimum, a more robust method, a finer grid) can silently coexist in the repo with the deprecated ones it replaced. Before extending or varying anything, resolve from the durable record (`research_plan.md#Current Status`, `research_contract.md`, the latest dated `artifacts/runs/<run_id>/`, and any explicit `superseded` / `voided` markers) **which** parameters, method, and configuration are the *current adopted* version — not the first script you happen to open or the most-cited earlier draft. Then **regression-anchor**: run that adopted reference configuration and assert it reproduces its known result (the published χ²/value/pole) *before* trusting any variation built on it. This is the project-state half of the [`numerical-reliability-gate`](../numerical-reliability-gate/SKILL.md) G4 anchor; skipping it is how work silently gets rebuilt on a stale fit or a retired method.
+
+To pull newer managed scaffold doc (`AGENTS.md`) into an existing project without disturbing user notes, run `autoresearch init --refresh` (preview with `autoresearch init --refresh --dry-run`). It backs up any changed managed file under `.autoresearch/backups/` and never rewrites `research_plan.md`, `research_notebook.md`, `research_contract.md`, `project_charter.md`, or `project_index.md`.
 
 If no project state exists and the user is in a real external research root, initialize with:
 
@@ -74,11 +79,11 @@ If no project state exists and the user is in a real external research root, ini
 autoresearch init
 ```
 
-If `autoresearch` is unavailable on `PATH`, use the development checkout
-entrypoint once to create the project-local fallback instead:
+If `autoresearch` is unavailable on `PATH`, run the same one-time setup through your
+autoresearch checkout (substitute its absolute path) to create the project-local fallback:
 
 ```bash
-node /Users/fkg/Coding/Agents/autoresearch-lab/packages/orchestrator/dist/cli.js init --runtime-only
+node /absolute/path/to/autoresearch-lab/packages/orchestrator/dist/cli.js init --runtime-only
 ```
 
 ## Route The Work
@@ -93,6 +98,45 @@ node /Users/fkg/Coding/Agents/autoresearch-lab/packages/orchestrator/dist/cli.js
 - If the task is lifecycle, verification, approval, pause/resume, final conclusions, or export, keep it on `autoresearch`.
 
 Do not invent compatibility commands or fallback entrypoints. Keep lifecycle work on `autoresearch` and route executor or provider work to the relevant skill/tool layer.
+
+## Long-Running Compute Jobs
+
+Real research compute (fits, scans, integrations, derivations) often runs far longer than one agent turn in an environment where the job can be **killed at any time** — contending processes, OS limits, or a closed session. Treat every long job as kill-prone and make it *survive* kills rather than assuming it finishes. The compute runner (`hep-calc` or any executor) runs the kernel; this harness owns the job's survival.
+
+**Launch contract.**
+
+- Write durable state only inside the managed run dir `artifacts/runs/<run_id>/` (human-meaningful tag, never a bare UUID). Never keep durable state in `/tmp`: a kill or a new session loses the results and, if the script also lives there, the code that produced them.
+- Keep the compute script in the repo (committed), not in `/tmp`. Stream stdout to a log *inside the run dir* (`<cmd> 2>&1 | tee artifacts/runs/<run_id>/<job>.log`) for tailing; the log is for eyeballing, the checkpoint is the durable record.
+- Pin a **project-local, lockfile-committed environment** (commit the lockfile — `Manifest.toml` / `uv.lock` / `requirements.lock` / `Cargo.lock` — and run the job explicitly against it). Never run a long job against a shared/global interpreter env: a runtime-version mismatch silently invalidates the compiled cache (every relaunch re-pays full startup) and makes results non-reproducible.
+
+**Checkpoint so a kill costs at most one unit.** Split the work into independent units; have the job **append one line per completed unit** to an append-only checkpoint file in the run dir, keyed by a unique unit id in column 1. On (re)start, read the file into a `done` set and skip any unit already present — so a kill loses at most the one in-flight unit. A unit that legitimately fails is still recorded (a sentinel row) so resume does not retry it forever. Include the per-unit wall-clock seconds in a column — that is what later lets you detect a livelock. Language-neutral shape:
+
+```text
+done = { column-1 keys already in <checkpoint> }   # empty if the file is absent
+for unit in units:
+    if unit.key in done: continue
+    result = compute(unit)                          # the expensive part
+    append one line "<key>\t<fields>\t<seconds>" to <checkpoint>; flush
+```
+
+Resume readers must guard against a missing checkpoint file, and must not trust a partial/stale checkpoint as a final number.
+
+**Survive dropped notifications with a self-re-arming heartbeat.** The host's "job done / killed" signal can be silently dropped, stranding the agent on a dead job. Arm a host-provided wall-clock self-wake (in Claude Code, `ScheduleWakeup`) at a cadence ≈ 2–3× the observed kill interval. Each wake must: (1) re-derive ground truth from the filesystem — checkpoint line count vs expected, and whether the process is still alive — never trusting the notification; (2) if the job was killed mid-run, relaunch it (the checkpoint resumes) **and re-arm the next wake**; (3) if it is done, report + commit + advance, and do **not** re-arm. The self-re-arming chain means one dropped notification can never strand the job. Stop the chain once completion is confirmed — do not leave heartbeats firing forever.
+
+Use the bundled probe instead of brittle `until ! pgrep …; sleep` loops (which burn turn budget, can mis-match the agent's own session, and can SIGPIPE the job via a stray `| head`):
+
+```bash
+python3 scripts/compute_job_probe.py --pattern "<job-script-name>" \
+    --checkpoint artifacts/runs/<run_id>/<job>.tsv --expected <N>
+```
+
+It captures `pgrep` (SIGPIPE-safe, never pipes) and prints JSON `{running, checkpoint_count, verdict}` with `verdict ∈ running | stalled | completed | killed_incomplete | stopped`: `killed_incomplete` → relaunch; `completed` → all expected units are recorded, so scan the checkpoint for any sentinel-failed rows before folding back; `stalled` → livelock (below).
+
+**Detect and break livelock.** If a single unit takes longer than the kill window minus startup overhead, the per-unit checkpoint can never land — the job relaunches forever and the checkpoint count stays flat. The probe reports `stalled` when the count is unchanged across `--stall-window` consecutive checks. Then **stop relaunching** and re-decompose: shrink the unit, or replace it with a finer-grained, **independently cross-validated** cheaper surrogate — never a silently-substituted approximation (that is papering over a result, forbidden). Keep the expensive original in-repo as a record of why.
+
+**Commit each stage as cross-session memory.** A kill loses CPU work; a closed session loses the agent's context. Commit each completed stage immediately with a message recording the result *and the lesson*; the git log is a durable record that survives context loss.
+
+**Log dead-ends structurally so a resumed or fresh agent never repeats one.** Append each failed approach to `artifacts/runs/<run_id>/failed_approaches_v1.json`, per the `@autoresearch/shared` `failed_approaches_v1` contract — `{ approach, why_failed, signal (error|stall|wrong_result|too_expensive|dead_end|superseded), at, evidence_ref?, do_not_retry }`. **`why_failed` is mandatory**: a dead-end recorded without why it failed is not a reusable lesson, and the contract rejects it. **Before starting any new approach, read this log and skip every `do_not_retry` entry** — that is the point, turning "what we already ruled out" from buried git archaeology into a record the next session (or a fresh agent) actually consults. A free-text note is the fallback only when structured logging is unavailable.
 
 ## Literature Research Gate
 
@@ -124,6 +168,7 @@ If `hep-mcp` or a needed provider is unavailable, state that limitation explicit
 
 After a milestone or run produces a stable result:
 
+- Fold in only numbers that pass the [`numerical-reliability-gate`](../numerical-reliability-gate/SKILL.md) — converged under refinement (no coarse-grid mirage), agreed across `>=2` orthogonal methods, and regression-anchored. A coarse, intermediate, or non-converged value is labeled as such or discarded, never silently promoted.
 - Summarize the durable conclusion in `research_contract.md`.
 - Update `research_plan.md#Current Status` with the current state, next step, blockers, and evidence pointers.
 - Link or copy the relevant run evidence under `artifacts/runs/<run_id>/`.

@@ -7,6 +7,12 @@ description: Run the local `opencode` CLI in one-shot mode for arbitrary prompts
 
 Use this skill when you need to invoke `opencode` from shell scripts (review, drafting, synthesis, etc.) without entering TUI mode.
 
+> **If you are already running as OpenCode, don't use this runner to re-invoke yourself.** Keep the call
+> in-host: OpenCode's native subagents, else inline in your own loop. The `opencode` CLI hop adds latency,
+> a separate session, and context loss for zero gain. This runner is for reaching OpenCode from a
+> DIFFERENT host (Claude / Codex / …) for cross-model work. Pick the model / reasoning depth by task
+> difficulty (quality first, not token thrift).
+
 ## Preconditions
 
 - `opencode` is installed: `command -v opencode`
@@ -16,7 +22,8 @@ Use this skill when you need to invoke `opencode` from shell scripts (review, dr
 ## Recommended: runner script (JSON parsing + fallback + retries)
 
 ```bash
-bash "${CODEX_HOME:-$HOME/.codex}/skills/opencode-cli-runner/scripts/run_opencode.sh" \
+SKILL_DIR="${SKILL_DIR:-$(for r in "${CLAUDE_CONFIG_DIR:-$HOME/.claude}" "${CODEX_HOME:-$HOME/.codex}" "$HOME/.config/opencode"; do [ -d "$r/skills/opencode-cli-runner" ] && echo "$r/skills/opencode-cli-runner" && break; done || true)}"
+bash "${SKILL_DIR}/scripts/run_opencode.sh" \
   --model openai/gpt-5 \
   --system-prompt-file /path/to/system.txt \
   --prompt-file /path/to/prompt.txt \
@@ -26,7 +33,8 @@ bash "${CODEX_HOME:-$HOME/.codex}/skills/opencode-cli-runner/scripts/run_opencod
 Dry-run (no `opencode` call):
 
 ```bash
-bash "${CODEX_HOME:-$HOME/.codex}/skills/opencode-cli-runner/scripts/run_opencode.sh" \
+SKILL_DIR="${SKILL_DIR:-$(for r in "${CLAUDE_CONFIG_DIR:-$HOME/.claude}" "${CODEX_HOME:-$HOME/.codex}" "$HOME/.config/opencode"; do [ -d "$r/skills/opencode-cli-runner" ] && echo "$r/skills/opencode-cli-runner" && break; done || true)}"
+bash "${SKILL_DIR}/scripts/run_opencode.sh" \
   --model openai/gpt-5 \
   --system-prompt-file /path/to/system.txt \
   --prompt-file /path/to/prompt.txt \

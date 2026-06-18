@@ -1,6 +1,6 @@
 {
   "name": "autoresearch-lab",
-  "version": "0.1.0",
+  "version": "0.3.0",
   "private": true,
   "description": "Autoresearch ecosystem monorepo — evidence-first theory-research substrate, control-plane, and provider packages",
   "type": "module",
@@ -15,7 +15,10 @@
     "check:atomic-write-anti-drift": "node scripts/check-atomic-write-anti-drift.mjs",
     "check:harness-invocation-anti-drift": "node scripts/check-harness-invocation-anti-drift.mjs",
     "check:integrity-receipt-anti-drift": "node scripts/check-integrity-receipt-anti-drift.mjs",
-    "check:skill-tool-name-anti-drift": "node scripts/check-skill-tool-name-anti-drift.mjs"
+    "check:skill-tool-name-anti-drift": "node scripts/check-skill-tool-name-anti-drift.mjs",
+    "check:portable-paths-anti-drift": "node scripts/check-portable-paths-anti-drift.mjs",
+    "check:scaffold-authority": "node scripts/check-scaffold-authority.mjs",
+    "check:host-neutral-skill-paths-anti-drift": "node scripts/check-host-neutral-skill-paths-anti-drift.mjs"
   },
   "author": "Feng-Kun Guo",
   "license": "MIT",

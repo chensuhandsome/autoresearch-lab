@@ -7,6 +7,12 @@ description: Run the local `codex` CLI (OpenAI Codex) in non-interactive mode (`
 
 Use this skill when you need to call the OpenAI Codex agent from the command line (any task), independent of the downstream workflow (review, drafting, computation, etc.).
 
+> **If you are already running as Codex, don't use this runner to re-invoke yourself.** Keep the call
+> in-host: a native sub-agent if your host exposes one, else inline in your own loop. The `codex` CLI hop
+> adds latency, a separate session, and context loss for zero gain. This runner is for reaching Codex from
+> a DIFFERENT host (Claude / OpenCode / …) for cross-model work. Choose `model_reasoning_effort` by task
+> difficulty (quality first, not token thrift) — hard tasks warrant `high`/`xhigh`.
+
 ## Preconditions
 
 - `codex` is installed: `command -v codex`
@@ -16,7 +22,8 @@ Use this skill when you need to call the OpenAI Codex agent from the command lin
 ## Recommended: runner script (retries + file inputs)
 
 ```bash
-bash ~/.claude/skills/codex-cli-runner/scripts/run_codex.sh \
+SKILL_DIR="${SKILL_DIR:-$(for r in "${CLAUDE_CONFIG_DIR:-$HOME/.claude}" "${CODEX_HOME:-$HOME/.codex}" "$HOME/.config/opencode"; do [ -d "$r/skills/codex-cli-runner" ] && echo "$r/skills/codex-cli-runner" && break; done || true)}"
+bash "${SKILL_DIR}/scripts/run_codex.sh" \
   --system-prompt-file /path/to/system.txt \
   --prompt-file /path/to/prompt.txt \
   --out /path/to/output.txt
@@ -25,7 +32,8 @@ bash ~/.claude/skills/codex-cli-runner/scripts/run_codex.sh \
 With explicit model:
 
 ```bash
-bash ~/.claude/skills/codex-cli-runner/scripts/run_codex.sh \
+SKILL_DIR="${SKILL_DIR:-$(for r in "${CLAUDE_CONFIG_DIR:-$HOME/.claude}" "${CODEX_HOME:-$HOME/.codex}" "$HOME/.config/opencode"; do [ -d "$r/skills/codex-cli-runner" ] && echo "$r/skills/codex-cli-runner" && break; done || true)}"
+bash "${SKILL_DIR}/scripts/run_codex.sh" \
   --model o3 \
   --system-prompt-file /path/to/system.txt \
   --prompt-file /path/to/prompt.txt \
@@ -61,7 +69,8 @@ bash ~/.claude/skills/codex-cli-runner/scripts/run_codex.sh \
 ## Dry-run example
 
 ```bash
-bash ~/.claude/skills/codex-cli-runner/scripts/run_codex.sh \
+SKILL_DIR="${SKILL_DIR:-$(for r in "${CLAUDE_CONFIG_DIR:-$HOME/.claude}" "${CODEX_HOME:-$HOME/.codex}" "$HOME/.config/opencode"; do [ -d "$r/skills/codex-cli-runner" ] && echo "$r/skills/codex-cli-runner" && break; done || true)}"
+bash "${SKILL_DIR}/scripts/run_codex.sh" \
   --model o3 \
   --prompt-file /path/to/prompt.txt \
   --out /path/to/output.txt \

@@ -53,6 +53,22 @@ jobs:
         if: ${{ matrix.node-version == 22 }}
         run: node scripts/check-governance-sync.mjs
 
+      - name: Check version consistency (lockstep package versions)
+        if: ${{ matrix.node-version == 22 }}
+        run: node scripts/check-version-consistency.mjs
+
+      - name: Check portable paths anti-drift (no machine-specific home paths)
+        if: ${{ matrix.node-version == 22 }}
+        run: node scripts/check-portable-paths-anti-drift.mjs
+
+      - name: Check scaffold authority (single baseline-doc scaffold source)
+        if: ${{ matrix.node-version == 22 }}
+        run: node scripts/check-scaffold-authority.mjs
+
+      - name: Check host-neutral skill paths anti-drift (no <host>/skills hardcoding)
+        if: ${{ matrix.node-version == 22 }}
+        run: node scripts/check-host-neutral-skill-paths-anti-drift.mjs
+
       - name: Check codegen drift (meta/schemas ↔ generated)
         if: ${{ matrix.node-version == 22 }}
         run: pnpm codegen:check
