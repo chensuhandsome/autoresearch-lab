@@ -14,6 +14,8 @@ import { handleOrchRunCreate } from '../src/orch-tools/create-status-list.js';
 import { buildRunStatusView, readApprovalsView, readRunListView } from '../src/orch-tools/run-read-model.js';
 import { OrchRunApprovalsListSchema } from '../src/orch-tools/schemas.js';
 
+const itPosix = process.platform === 'win32' ? it.skip : it;
+
 function makeTmpDir(): string {
   return fs.mkdtempSync(path.join(os.tmpdir(), 'orch-test-'));
 }
@@ -391,7 +393,7 @@ describe('StateManager', () => {
     expect(exportView.message).not.toContain('wrote:');
   });
 
-  it('does not advertise a stale project-local launcher as a healthy status fallback', () => {
+  itPosix('does not advertise a stale project-local launcher as a healthy status fallback', () => {
     const state = baseState({
       run_id: 'test-run-stale-launcher',
       run_status: 'idle',
@@ -446,7 +448,7 @@ describe('StateManager', () => {
     ]));
   });
 
-  it('treats a project-local launcher with a missing baked target as healthy when autoresearch is on PATH', () => {
+  itPosix('treats a project-local launcher with a missing baked target as healthy when autoresearch is on PATH', () => {
     const state = baseState({
       run_id: 'test-run-path-launcher',
       run_status: 'idle',
@@ -497,7 +499,7 @@ describe('StateManager', () => {
     expect(launcher.issue_code).toBeNull();
   });
 
-  it('does not treat a directory named autoresearch on PATH as a usable CLI fallback', () => {
+  itPosix('does not treat a directory named autoresearch on PATH as a usable CLI fallback', () => {
     const state = baseState({
       run_id: 'test-run-dir-on-path',
       run_status: 'idle',
@@ -544,7 +546,7 @@ describe('StateManager', () => {
     expect(launcher.issue_code).toBe('PROJECT_LOCAL_LAUNCHER_TARGET_MISSING');
   });
 
-  it('does not treat the project-local launcher itself on PATH as a usable CLI fallback', () => {
+  itPosix('does not treat the project-local launcher itself on PATH as a usable CLI fallback', () => {
     const state = baseState({
       run_id: 'test-run-self-on-path',
       run_status: 'idle',
@@ -589,7 +591,7 @@ describe('StateManager', () => {
     expect(launcher.issue_code).toBe('PROJECT_LOCAL_LAUNCHER_TARGET_MISSING');
   });
 
-  it('does not treat a hard link to the launcher on PATH as a usable CLI fallback', () => {
+  itPosix('does not treat a hard link to the launcher on PATH as a usable CLI fallback', () => {
     const state = baseState({
       run_id: 'test-run-hardlink-on-path',
       run_status: 'idle',
@@ -638,7 +640,7 @@ describe('StateManager', () => {
     expect(launcher.issue_code).toBe('PROJECT_LOCAL_LAUNCHER_TARGET_MISSING');
   });
 
-  it('flags an old self-recursing launcher shape (no self-identity guard) as unparseable', () => {
+  itPosix('flags an old self-recursing launcher shape (no self-identity guard) as unparseable', () => {
     const state = baseState({
       run_id: 'test-run-old-launcher-shape',
       run_status: 'idle',
@@ -675,7 +677,7 @@ describe('StateManager', () => {
     expect(launcher.issue_code).toBe('PROJECT_LOCAL_LAUNCHER_UNPARSEABLE');
   });
 
-  it('does not advertise an unparseable project-local launcher as a healthy status fallback', () => {
+  itPosix('does not advertise an unparseable project-local launcher as a healthy status fallback', () => {
     const state = baseState({
       run_id: 'test-run-malformed-launcher',
       run_status: 'idle',
@@ -708,7 +710,7 @@ describe('StateManager', () => {
     ]));
   });
 
-  it('does not advertise a wrong executable as a healthy project-local status fallback', () => {
+  itPosix('does not advertise a wrong executable as a healthy project-local status fallback', () => {
     const state = baseState({
       run_id: 'test-run-wrong-launcher',
       run_status: 'idle',
